@@ -3,3 +3,4 @@
 git format.txt
 references.txt
 security.txt
+/__pycache__/
