@@ -14,7 +14,7 @@ class Column:
         self.name = input()
 
         while True:
-            print("Enter the type name; Name should be INT, VARCHAR or FLOAT")
+            print("Enter the type name(Name should be INT, VARCHAR or FLOAT) : ", end='')
             type_name = input()
 
             if type_name not in self.type_candidate:

@@ -1,120 +1,17 @@
 import pymysql
-from column import Column
-from utility import print_line
-
-mysql_user = 'WRITE YOUR USERNAME'
-mysql_passwd = 'WRITE YOUR PASSWORD'
+from CLI import *
+from sql_executor import *
 
 
-def show_menus(t_names):
-    print('==============================')
-    print('Current Table List')
-    print_line(t_names)
-    print('==============================')
+def get_id_pw(file_path):
+    with open(file_path, 'r') as f:
+        ID = f.readline().strip()
+        PW = f.readline().strip()
 
-    print("\nChoose a mode")
-    print("1 : Create new table")
-    print("2 : Insert record to the table")
-    print("3 : Show records at a table")
-    print("0 : exit")
-
-    return
+    return ID, PW
 
 
-def input_table_name():
-    print("enter the table name : ")
-    t_name = input()
-
-    return t_name
-
-
-def input_columns():
-    columns = []
-
-    print("Enter the number of columns : ", end = '')
-    num_column = int(input())
-
-    for i in range(num_column):
-        new_column = Column()
-        new_column.input_column()
-
-        columns.append(new_column)
-
-    return columns
-
-
-def sqlgen_create_table(t_name, columns):
-    num_iter = len(columns)
-
-    sql = 'CREATE TABLE ' + t_name + ' (\n'
-    for i in range(num_iter - 1):
-        sql += columns[i].sqlgen_create_table_column() + ',\n'
-
-    sql += columns[num_iter - 1].sqlgen_create_table_column() + ') CHARSET=utf8'
-
-    return sql
-
-
-def sqlgen_insert_value(t_name, values):
-    num_iter = len(values)
-
-    sql = 'INSERT INTO ' + t_name + ' VALUES ('
-    for i in range(num_iter - 1):
-        sql += '%s, '
-
-    sql += '%s)'
-
-    return sql
-
-
-def create_table(t_name, connector):
-    columns = input_columns()
-
-    with connector.cursor() as cursor:
-        sql = sqlgen_create_table(t_name, columns)
-        cursor.execute(sql)
-
-    connector.commit()
-    c_name = [col.name for col in columns]
-
-    return c_name
-
-
-def insert_value(t_name, c_name, connector):
-    values = []
-
-    for c in c_name:
-        print("{} : ".format(c))
-        val = input()
-        values.append(val)
-
-    with connector.cursor() as cursor:
-        sql = sqlgen_insert_value(t_name, values)
-        cursor.execute(sql, values)
-
-    connector.commit()
-    return
-
-
-def select_all(t_name, c_name, connector):
-    print('==============================')
-    print("The Table contents of {}".format(t_name))
-    print_line(c_name)
-    print('==============================')
-
-    with connector.cursor() as cursor:
-        sql = 'SELECT * FROM ' + t_name
-        cursor.execute(sql)
-
-        results = cursor.fetchall()
-
-    for result in results:
-        print_line(result)
-
-    print('==============================', end = '\n\n')
-
-
-def create_db():
+def create_db(mysql_user, mysql_passwd):
     connector_db = pymysql.connect(
         user=mysql_user,
         passwd=mysql_passwd,
@@ -132,10 +29,10 @@ def create_db():
         connector_db.close()
 
 
-def get_table_column_names():
+def get_table_column_names(mysql_user, mysql_passwd):
     connector_info = pymysql.connect(
-        user='root',
-        passwd='praymeier12@%',
+        user=mysql_user,
+        passwd=mysql_passwd,
         host='127.0.0.1',
         db='information_schema',
         charset='utf8'
@@ -151,7 +48,7 @@ def get_table_column_names():
             result = cursor.fetchall()
 
             if len(result) == 0:
-                create_db()
+                create_db(mysql_user, mysql_passwd)
 
             sql = 'select table_name FROM tables where table_schema = \'tabularec_db\''
             cursor.execute(sql)
@@ -173,7 +70,10 @@ def get_table_column_names():
 
 
 if __name__ == "__main__":
-    t_names, c_names = get_table_column_names()
+    mysql_info_path = './sql_info.txt'
+
+    mysql_user, mysql_passwd = get_id_pw(mysql_info_path)
+    t_names, c_names = get_table_column_names(mysql_user, mysql_passwd)
 
     connector = pymysql.connect(
         user=mysql_user,
@@ -184,7 +84,7 @@ if __name__ == "__main__":
     )
 
     while True:
-        show_menus(t_names)
+        print_menus(t_names)
         mode = int(input())
 
         if mode == 1:
@@ -194,7 +94,11 @@ if __name__ == "__main__":
                 print("That table already exists. Try other name.")
                 continue
 
-            c_name = create_table(t_name, connector)
+            columns = input_columns()
+
+            sql_execute_create_table(t_name, columns, connector)
+
+            c_name = [col.name for col in columns]
 
             t_names.append(t_name)
             c_names.append(c_name)
@@ -207,7 +111,8 @@ if __name__ == "__main__":
                 continue
 
             idx = t_names.index(t_name)
-            insert_value(t_name, c_names[idx], connector)
+            values = input_values(c_names[idx])
+            sql_execute_insert_value(t_name, values, connector)
 
         elif mode == 3:
             t_name = input_table_name()
@@ -217,7 +122,9 @@ if __name__ == "__main__":
                 continue
 
             idx = t_names.index(t_name)
-            select_all(t_name, c_names[idx], connector)
+
+            results = sql_execute_select_all(t_name, connector)
+            print_table(t_name, c_names[idx], results)
 
         elif mode == 0:
             print("Done")

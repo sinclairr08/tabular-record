@@ -1,6 +1,6 @@
 /.idea/
 /old_codes/
+/__pycache__/
 git format.txt
 references.txt
-security.txt
-/__pycache__/
+sql_info_test.txt
