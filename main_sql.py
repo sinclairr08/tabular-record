@@ -1,6 +1,10 @@
 import pymysql
-from CLI import *
-from sql_executor import *
+import sys
+
+from sql_executor import SQLexecutor
+from GUI import MainWindow
+
+from PyQt5.QtWidgets import *
 
 
 def get_id_pw(file_path):
@@ -39,7 +43,7 @@ def get_table_column_names(mysql_user, mysql_passwd):
     )
 
     t_names = []
-    c_names = []
+    all_c_names = []
 
     try:
         with connector_info.cursor() as cursor:
@@ -61,19 +65,19 @@ def get_table_column_names(mysql_user, mysql_passwd):
                 cursor.execute(sql, table)
                 c_results = cursor.fetchall()
 
-                c_names.append([item[0] for item in c_results])
+                all_c_names.append([item[0] for item in c_results])
 
     finally:
         connector_info.close()
 
-    return t_names, c_names
+    return t_names, all_c_names
 
 
 if __name__ == "__main__":
     mysql_info_path = './sql_info.txt'
 
     mysql_user, mysql_passwd = get_id_pw(mysql_info_path)
-    t_names, c_names = get_table_column_names(mysql_user, mysql_passwd)
+    t_names, all_c_names = get_table_column_names(mysql_user, mysql_passwd)
 
     connector = pymysql.connect(
         user=mysql_user,
@@ -83,52 +87,8 @@ if __name__ == "__main__":
         charset='utf8'
     )
 
-    while True:
-        print_menus(t_names)
-        mode = int(input())
+    executor = SQLexecutor(connector)
 
-        if mode == 1:
-            t_name = input_table_name()
-
-            if t_name in t_names:
-                print("That table already exists. Try other name.")
-                continue
-
-            columns = input_columns()
-
-            sql_execute_create_table(t_name, columns, connector)
-
-            c_name = [col.name for col in columns]
-
-            t_names.append(t_name)
-            c_names.append(c_name)
-
-        elif mode == 2:
-            t_name = input_table_name()
-
-            if t_name not in t_names:
-                print("No such table")
-                continue
-
-            idx = t_names.index(t_name)
-            values = input_values(c_names[idx])
-            sql_execute_insert_value(t_name, values, connector)
-
-        elif mode == 3:
-            t_name = input_table_name()
-
-            if t_name not in t_names:
-                print("No such table")
-                continue
-
-            idx = t_names.index(t_name)
-
-            results = sql_execute_select_all(t_name, connector)
-            print_table(t_name, c_names[idx], results)
-
-        elif mode == 0:
-            print("Done")
-            break
-
-        else:
-            print("No such mode")
+    app = QApplication(sys.argv)
+    window = MainWindow(executor, t_names, all_c_names)
+    sys.exit(app.exec_())
