@@ -3,21 +3,20 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
 class Mainlayout(QWidget):
-    def __init__(self, executor, t_names, all_c_names):
+    def __init__(self, executor):
         super().__init__()
 
         self.executor = executor
-        self.t_names = t_names
-        self.all_c_names = all_c_names
+        self.t_names, self.all_c_infos = executor.get_infos()
 
         self.layout_btns = QVBoxLayout()
         self.setButtons()
 
         self.table_widget = QTableWidget(self)
         self.t_info_header = ['연번', '테이블명']
-        self.t_info_data = self.make_t_info()
-
+        self.t_info_data = self.make_t_info_data()
         self.show_tables()
+
         self.msgbox = QMessageBox()
         self.msgbox.setGeometry(250, 250, 200, 200)
         self.msgbox.setIcon(QMessageBox.Information)
@@ -29,7 +28,7 @@ class Mainlayout(QWidget):
 
         self.setLayout(layout_main)
 
-    def make_t_info(self):
+    def make_t_info_data(self):
         t_info_data = []
         for i, data in enumerate(self.t_names):
             t_info_data.append([str(i+1), data])
@@ -60,31 +59,29 @@ class Mainlayout(QWidget):
             return
 
         c_num, _ = QInputDialog.getInt(self, "Create Table", "Enter the column nums : ")
+        c_infos = []
 
-        c_names = []
-        c_types = []
         for _ in range(c_num):
             c_name, _ = QInputDialog.getText(self, "Create Table", "Enter the column name : ")
-            c_names.append(c_name)
             c_type, _ = QInputDialog.getText(self, "Create Table", "Enter the type of {} : ".format(c_name))
-            if not c_type:
-                c_type = 'VARCHAR'
-            c_types.append(c_type)
 
-        self.executor.create_table(t_name, c_names, c_types)
+            c_type = self.executor.adjust_type(c_type)
+            c_infos.append((c_name, c_type))
+
+        self.executor.create_table(t_name, c_infos)
 
         t_nums = len(self.t_info_data) + 1
         self.t_info_data.append([str(t_nums), t_name])
 
         self.t_names.append(t_name)
-        self.all_c_names.append(c_names)
+        self.all_c_infos.append(c_infos)
 
         self.show_tables()
 
     def insert_record(self):
         t_name, _ = QInputDialog.getText(self, "Insert Record", "Enter the table name : ")
         if t_name in self.t_names:
-            c_names = self.get_c_names(t_name)
+            c_infos = self.get_c_infos(t_name)
 
         else:
             self.msgbox.setText("No such table")
@@ -92,15 +89,11 @@ class Mainlayout(QWidget):
             return
 
         values = []
-        for c_name in c_names:
-            value, _ = QInputDialog.getText(self, "Insert Record", "Enter the data of col {} : ".format(c_name))
+        for c_name, c_type in c_infos:
+            value, _ = QInputDialog.getText(self, "Insert Record", "Enter the data of col {} ({}): ".format(c_name, c_type))
             values.append(value)
 
         self.executor.insert_value(t_name, values)
-
-    def get_c_names(self, t_name):
-        idx = self.t_names.index(t_name)
-        return self.all_c_names[idx]
 
     def show_records(self):
         t_name, _ = QInputDialog.getText(self, "Show Records", "Enter the table name : ")
@@ -117,6 +110,14 @@ class Mainlayout(QWidget):
 
         self.adjust_table(c_names, t_data)
 
+    def get_c_infos(self, t_name):
+        idx = self.t_names.index(t_name)
+        return self.all_c_infos[idx]
+
+    def get_c_names(self, t_name):
+        idx = self.t_names.index(t_name)
+        c_names = [item[0] for item in self.all_c_infos[idx]]
+        return c_names
 
     def show_tables(self):
         self.adjust_table(self.t_info_header, self.t_info_data)
@@ -142,10 +143,10 @@ class Mainlayout(QWidget):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, executor, t_names, all_c_names):
+    def __init__(self, executor):
         super().__init__()
 
-        layout = Mainlayout(executor, t_names, all_c_names)
+        layout = Mainlayout(executor)
         self.setCentralWidget(layout)
 
         self.setWindowTitle("Tabularec")
