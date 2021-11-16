@@ -59,6 +59,20 @@ class SQLexecutor():
 
         return results
 
+    def delete_from(self, t_name, c_name, value):
+        sql = "DELETE FROM {} WHERE {} = ?".format(t_name, c_name)
+        self.cursor.execute(sql, value)
+        self.connector.commit()
+
+        return
+
+    def drop_table(self, t_name):
+        sql = "DROP TABLE " + t_name
+        self.cursor.execute(sql)
+        self.connector.commit()
+
+        return
+
     def adjust_type(self, c_type):
         c_type = c_type.upper()
         if not c_type:

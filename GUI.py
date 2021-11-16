@@ -40,16 +40,22 @@ class Mainlayout(QWidget):
         self.insert_record_btn = QPushButton("Insert Record")
         self.show_records_btn = QPushButton("Show Records")
         self.show_tables_btn = QPushButton("Show Tables")
+        self.delete_record_btn = QPushButton("Delete Record")
+        self.drop_table_btn = QPushButton("Drop Table")
 
         self.create_table_btn.clicked.connect(self.create_table)
         self.insert_record_btn.clicked.connect(self.insert_record)
         self.show_records_btn.clicked.connect(self.show_records)
         self.show_tables_btn.clicked.connect(self.show_tables)
+        self.delete_record_btn.clicked.connect(self.delete_record)
+        self.drop_table_btn.clicked.connect(self.drop_table)
 
         self.layout_btns.addWidget(self.create_table_btn)
         self.layout_btns.addWidget(self.insert_record_btn)
         self.layout_btns.addWidget(self.show_records_btn)
         self.layout_btns.addWidget(self.show_tables_btn)
+        self.layout_btns.addWidget(self.delete_record_btn)
+        self.layout_btns.addWidget(self.drop_table_btn)
 
     def create_table(self):
         t_name, _ = QInputDialog.getText(self, "Create Table", "Enter the table name : ")
@@ -109,6 +115,44 @@ class Mainlayout(QWidget):
         t_data = self.executor.select_all(t_name)
 
         self.adjust_table(c_names, t_data)
+
+    def delete_record(self):
+        t_name, _ = QInputDialog.getText(self, "Delete Record", "Enter the table name : ")
+        if t_name in self.t_names:
+            c_names = self.get_c_names(t_name)
+
+        else:
+            self.msgbox.setText("No such table")
+            self.msgbox.exec_()
+            return
+
+        c_name, _ = QInputDialog.getText(self, "Delete Record", "Enter column name: ")
+        if c_name not in c_names:
+            self.msgbox.setText("No such column")
+            self.msgbox.exec_()
+            return
+
+        value, _ = QInputDialog.getText(self, "Delete Record", "Enter value of col {}: ".format(c_name))
+
+        self.executor.delete_from(t_name, c_name, value)
+
+    def drop_table(self):
+        t_name, _ = QInputDialog.getText(self, "Drop Table", "Enter the table name : ")
+        if t_name not in self.t_names:
+            self.msgbox.setText("No such table")
+            self.msgbox.exec_()
+            return
+
+        self.executor.drop_table(t_name)
+
+        idx = self.t_names.index(t_name)
+
+        self.t_names.pop(idx)
+        self.all_c_infos.pop(idx)
+
+        self.t_info_data = self.make_t_info_data()
+
+        self.show_tables()
 
     def get_c_infos(self, t_name):
         idx = self.t_names.index(t_name)
