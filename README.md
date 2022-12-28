@@ -3,7 +3,7 @@
 
 <center>
 
-![board](img_readme/Board.png)
+![board](img_readme/window.png)
 
 </center>
 
@@ -31,3 +31,8 @@
 
 ### Drop Table
  - User can delete certain table
+
+# Requirements
+```
+pyqt >= 5.9.2
+```

@@ -2,7 +2,7 @@ import sqlite3
 import sys
 
 from sql_executor import SQLexecutor
-from GUI import MainWindow
+from layout import MainWindow
 
 from PyQt5.QtWidgets import QApplication
 
